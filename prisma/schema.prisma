@@ -1,0 +1,346 @@
+  // Prisma schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+    url      = env("DATABASE_URL")
+
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  definition  String
+  status      String
+  lastRunAt   DateTime?
+  lastRunStatus String?
+  lastRunId   String?
+  creditsConsumed Int @default(0)
+  isTemplate  Boolean  @default(false)
+  templateCategory String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  executions  WorkflowExecution[]
+  schedules   WorkflowSchedule[]
+  webhooks    WebhookTrigger[]
+  versions    WorkflowVersion[]
+  
+  //User cannot have two  Workflow with the same name 
+  @@unique([name,userId])
+}
+
+model WorkflowExecution {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  status      String   // PENDING, RUNNING, COMPLETED, FAILED
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  duration    Int?     // Duration in milliseconds
+  creditsConsumed Int @default(0)
+  
+  definition  String   // Snapshot of workflow at execution time
+  logs        String   // JSON array of execution logs
+  phases      String?  // JSON array of execution phases
+  output      String?  // JSON output data
+  error       String?  // Error message if failed
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([workflowId])
+  @@index([userId])
+  @@index([status])
+}
+
+model WorkflowSchedule {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  enabled     Boolean  @default(true)
+  
+  // Cron expression (e.g., "0 9 * * *" for daily at 9am)
+  cronExpression String
+  
+  // Timezone for the schedule
+  timezone    String   @default("UTC")
+  
+  // Last execution time
+  lastRunAt   DateTime?
+  
+  // Next scheduled execution time
+  nextRunAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([workflowId])
+  @@index([userId])
+  @@index([enabled])
+  @@index([nextRunAt])
+}
+
+model UserBalance {
+  userId      String   @id
+  credits     Int      @default(1000)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WebhookTrigger {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  enabled     Boolean  @default(true)
+  
+  // Unique webhook URL path
+  webhookPath String   @unique
+  
+  // Last triggered time
+  lastTriggeredAt DateTime?
+  
+  // Total trigger count
+  triggerCount Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([workflowId])
+  @@index([userId])
+  @@index([enabled])
+}
+
+model WorkflowVersion {
+  id          String   @id @default(cuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  version     Int      // Version number
+  definition  String   // Snapshot of workflow definition
+  changeMessage String? // Optional commit message
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([workflowId])
+  @@index([userId])
+  @@unique([workflowId, version])
+}
+
+model WorkflowStorage {
+  id          String   @id @default(cuid())
+  workflowId  String
+  userId      String
+  
+  key         String   // Storage key
+  value       String   // Storage value (JSON)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([workflowId, key])
+  @@index([workflowId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  workflowId  String?
+  
+  action      String   // CREATE, UPDATE, DELETE, EXECUTE, etc.
+  entityType  String   // WORKFLOW, EXECUTION, SCHEDULE, etc.
+  entityId    String?
+  
+  metadata    String?  // JSON metadata
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([workflowId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model RateLimit {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  // Rate limit type: EXECUTION, API, WEBHOOK
+  limitType   String
+  
+  // Current count in window
+  count       Int      @default(0)
+  
+  // Window start time
+  windowStart DateTime @default(now())
+  
+  // Window size in seconds
+  windowSize  Int      @default(3600) // 1 hour
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, limitType])
+  @@index([userId])
+  @@index([windowStart])
+}
+
+model AlertConfig {
+  id          String   @id @default(cuid())
+  workflowId  String
+  userId      String
+  
+  enabled     Boolean  @default(true)
+  
+  // Alert conditions
+  onSuccess   Boolean  @default(false)
+  onFailure   Boolean  @default(true)
+  
+  // Notification channels
+  emailEnabled Boolean @default(true)
+  email       String?
+  
+  webhookEnabled Boolean @default(false)
+  webhookUrl  String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([workflowId])
+  @@index([userId])
+  @@index([enabled])
+}
+
+// Team/Workspace collaboration models
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  
+  ownerId     String   // User who created the org
+  
+  // Subscription info
+  plan        String   @default("free") // free, pro, enterprise
+  credits     Int      @default(5000)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  members     OrganizationMember[]
+  workflows   SharedWorkflow[]
+  
+  @@index([ownerId])
+}
+
+model OrganizationMember {
+  id          String   @id @default(cuid())
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  role        String   // OWNER, ADMIN, MEMBER, VIEWER
+  
+  // Permissions
+  canCreateWorkflow Boolean @default(true)
+  canEditWorkflow   Boolean @default(true)
+  canDeleteWorkflow Boolean @default(false)
+  canExecuteWorkflow Boolean @default(true)
+  canManageTeam     Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@index([userId])
+  @@index([role])
+}
+
+model SharedWorkflow {
+  id          String   @id @default(cuid())
+  workflowId  String
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Sharing settings
+  shareType   String   // ORGANIZATION, PUBLIC, PRIVATE
+  publicUrl   String?  @unique
+  
+  // Access control
+  allowExecution Boolean @default(true)
+  allowClone     Boolean @default(true)
+  allowEdit      Boolean @default(false)
+  
+  viewCount   Int      @default(0)
+  cloneCount  Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([workflowId])
+  @@index([orgId])
+  @@index([shareType])
+  @@index([publicUrl])
+}
+
+model ExecutionMetrics {
+  id          String   @id @default(cuid())
+  executionId String
+  
+  nodeId      String   // Node/task ID
+  taskType    String
+  
+  // Performance metrics
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int      // Milliseconds
+  
+  // Resource usage
+  memoryUsed  Int?     // MB
+  cpuUsed     Float?   // Percentage
+  
+  // Status
+  status      String   // SUCCESS, FAILED, SKIPPED
+  error       String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([executionId])
+  @@index([nodeId])
+  @@index([taskType])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  
+  enabled     Boolean  @default(false)
+  
+  // Optional: target specific users or orgs
+  enabledFor  String?  // JSON array of userIds/orgIds
+  
+  // A/B testing
+  rolloutPercentage Int @default(0) // 0-100
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([name])
+  @@index([enabled])
+}
