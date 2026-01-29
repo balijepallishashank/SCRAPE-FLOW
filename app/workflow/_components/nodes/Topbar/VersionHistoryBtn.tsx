@@ -90,7 +90,7 @@ export default function VersionHistoryBtn({ workflowId }: { workflowId: string }
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {new Date(version.createdAt).toLocaleString()}
+                        {new Date(version.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
                     </div>
                     {index > 0 && (

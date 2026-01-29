@@ -36,14 +36,20 @@ export class BrowserManager {
     }
 
     this.browser = await puppeteer.launch({
-      headless: true,
-      executablePath, // Use Brave if found, otherwise fall back to default
+      headless: "new",
+      executablePath, // Use Brave if found, otherwise Chromium
+      timeout: 60000,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-accelerated-2d-canvas",
         "--disable-gpu",
+        "--disable-web-resources",
+        "--disable-features=TranslateUI,IsolateOrigins,site-per-process",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-web-security",
+        "--start-maximized",
       ],
     });
 
@@ -52,7 +58,17 @@ export class BrowserManager {
 
   async createPage(): Promise<Page> {
     const browser = await this.launchBrowser();
-    return await browser.newPage();
+    const page = await browser.newPage();
+    
+    // Set user agent to avoid bot detection
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+    
+    // Set viewport
+    await page.setViewport({ width: 1920, height: 1080 });
+    
+    return page;
   }
 
   async closeBrowser(): Promise<void> {
@@ -64,8 +80,8 @@ export class BrowserManager {
 
   async navigateToUrl(page: Page, url: string): Promise<void> {
     await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 30000,
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
     });
   }
 

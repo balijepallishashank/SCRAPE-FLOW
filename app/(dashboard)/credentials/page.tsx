@@ -1,6 +1,5 @@
 import React from "react";
-import { ShieldCheckIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CredentialsClient } from "./CredentialsClient";
 
 export default function CredentialsPage() {
   return (
@@ -13,26 +12,11 @@ export default function CredentialsPage() {
             Manage your API keys and credentials
           </p>
         </div>
-
-        <Button>Add Credential</Button>
       </div>
 
       {/* Content */}
       <div className="flex-1 py-6">
-        <div className="flex flex-col gap-4 h-full items-center justify-center text-center">
-          <div className="rounded-full bg-accent w-20 h-20 flex items-center justify-center">
-            <ShieldCheckIcon size={40} className="stroke-primary" />
-          </div>
-
-          <div className="space-y-1">
-            <p className="font-bold">No credentials added yet</p>
-            <p className="text-sm text-muted-foreground">
-              Add credentials to connect external services
-            </p>
-          </div>
-
-          <Button>Add Your First Credential</Button>
-        </div>
+        <CredentialsClient />
       </div>
     </div>
   );

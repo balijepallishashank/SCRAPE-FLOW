@@ -26,6 +26,10 @@ export const NavigateUrlTask = {
       name: "Web page",
       type: TaskParamType.BROWSER_INSTANCE,
     },
+    {
+      name: "URL",
+      type: TaskParamType.STRING,
+    },
   ],
   credits: 1,
 };

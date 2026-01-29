@@ -20,6 +20,7 @@ const categories: Array<{
     id: "interaction",
     label: "User interactions",
     tasks: [
+      TaskType.LAUNCH_BROWSER,
       TaskType.NAVIGATE_URL,
       TaskType.FILL_FORM,
       TaskType.CLICK_ELEMENT,

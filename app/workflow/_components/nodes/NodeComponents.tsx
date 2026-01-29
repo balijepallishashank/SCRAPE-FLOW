@@ -10,6 +10,7 @@ import NodeCard from "./NodeCard";
 import NodeHeader from "./NodeHeader";
 import NodeInputs from "./NodeInputs";
 import { NodeInput } from "./NodeInput";
+import { Handle, Position } from "@xyflow/react";
 
 /* ------------------------------------------------------------------ */
 /* Node Component */
@@ -45,6 +46,28 @@ const NodeComponent = memo((props: NodeProps) => {
           />
         ))}
       </NodeInputs>
+
+      {/* Outputs */}
+      {task.outputs && task.outputs.length > 0 && (
+        <div className="flex flex-col gap-2 px-3 pb-3 pt-1">
+          {task.outputs.map((output) => (
+            <div
+              key={output.name}
+              className="flex items-center justify-between bg-secondary rounded-md px-3 py-2 relative"
+            >
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {output.name}
+              </span>
+              <Handle
+                id={output.name}
+                type="source"
+                position={Position.Right}
+                className="!bg-muted-foreground !border-2 !border-background !-right-2 !w-4 !h-4"
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </NodeCard>
   );
 });

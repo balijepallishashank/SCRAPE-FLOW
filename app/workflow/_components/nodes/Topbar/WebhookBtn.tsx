@@ -73,11 +73,17 @@ export default function WebhookBtn({ workflowId }: { workflowId: string }) {
     ? `${window.location.origin}/api/webhook/${webhook.webhookPath}`
     : "";
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    toast.success("Webhook URL copied to clipboard");
-    setTimeout(() => setCopied(false), 2000);
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      toast.success("Webhook URL copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error("Clipboard blocked", {
+        description: "Your browser blocked clipboard access. Copy the URL manually.",
+      });
+    }
   };
 
   return (
@@ -88,11 +94,12 @@ export default function WebhookBtn({ workflowId }: { workflowId: string }) {
           Webhook
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Webhook Trigger</DialogTitle>
+          <DialogTitle>Webhook Settings</DialogTitle>
           <DialogDescription>
-            Trigger this workflow via HTTP POST requests
+            Manage your webhook URL and delivery settings.
           </DialogDescription>
         </DialogHeader>
 
@@ -118,11 +125,7 @@ export default function WebhookBtn({ workflowId }: { workflowId: string }) {
                 <Label>Webhook URL</Label>
                 <div className="flex gap-2">
                   <Input value={webhookUrl} readOnly className="font-mono text-sm" />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={copyToClipboard}
-                  >
+                  <Button size="icon" variant="outline" onClick={copyToClipboard}>
                     {copied ? (
                       <CheckIcon size={16} className="text-green-600" />
                     ) : (
@@ -164,7 +167,10 @@ export default function WebhookBtn({ workflowId }: { workflowId: string }) {
                     <p className="text-muted-foreground">Last Triggered</p>
                     <p className="font-semibold">
                       {webhook.lastTriggeredAt
-                        ? new Date(webhook.lastTriggeredAt).toLocaleString()
+                        ? new Date(webhook.lastTriggeredAt).toLocaleString("en-US", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
                         : "Never"}
                     </p>
                   </div>
@@ -187,9 +193,7 @@ export default function WebhookBtn({ workflowId }: { workflowId: string }) {
               <div className="space-y-2 pt-2 border-t">
                 <Label>Example cURL Request</Label>
                 <div className="bg-slate-950 rounded p-3 font-mono text-xs text-white overflow-x-auto">
-                  <pre>{`curl -X POST ${webhookUrl} \\
-  -H "Content-Type: application/json" \\
-  -d '{"data": "your data here"}'`}</pre>
+                  <pre>{`curl -X POST ${webhookUrl} \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"data": "your data here"}'`}</pre>
                 </div>
               </div>
             </>

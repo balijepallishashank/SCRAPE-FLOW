@@ -32,20 +32,16 @@ export default function SaveBtn({ workflowId }: { workflowId: string }) {
     const edges = getEdges();
     const errors = validateWorkflow(nodes, edges);
 
+    // Show validation warnings but still allow save (workflow can be incomplete while building)
     if (errors.length > 0) {
-      toast.error("Workflow validation failed", {
-        id: "save-workflow",
-        description: `Found ${errors.length} error(s). Check console for details.`,
-      });
-      console.error("Validation errors:", errors);
+      console.warn("Workflow validation warnings:", errors);
       
-      // Show first few errors as toasts
-      errors.slice(0, 3).forEach((error) => {
-        toast.error(error.message, {
-          description: error.nodeId ? `Node: ${error.nodeId}` : undefined,
-        });
+      // Show first warning as a toast
+      const firstError = errors[0];
+      toast.warning("Workflow incomplete", {
+        id: "save-workflow",
+        description: firstError.message,
       });
-      return;
     }
 
     const workflowDefinition = JSON.stringify(toObject());

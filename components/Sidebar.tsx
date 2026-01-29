@@ -7,6 +7,7 @@ import {
   HomeIcon,
   Layers2Icon,
   ShieldCheckIcon,
+  ScrollTextIcon,
   Menu,
   ClockIcon,
   LayoutTemplateIcon,
@@ -46,6 +47,11 @@ const routes = [
     href: "/runs",
     label: "Runs",
     icon: ClockIcon,
+  },
+  {
+    href: "/audit",
+    label: "Audit Logs",
+    icon: ScrollTextIcon,
   },
   {
     href: "/credentials",

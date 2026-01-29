@@ -23,5 +23,11 @@ export const DeliverViaWebhookTask = {
       variant: "textarea",
     },
   ],
+  outputs: [
+    {
+      name: "Response Status",
+      type: TaskParamType.STRING,
+    },
+  ],
   credits: 1,
 };

@@ -32,6 +32,10 @@ export const WaitForElementTask = {
       name: "Web page",
       type: TaskParamType.BROWSER_INSTANCE,
     },
+    {
+      name: "Element Selector",
+      type: TaskParamType.STRING,
+    },
   ],
   credits: 1,
 };

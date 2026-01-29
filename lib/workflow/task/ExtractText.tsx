@@ -22,4 +22,10 @@ export const ExtractTextTask = {
       required: true,
     },
   ],
+  outputs: [
+    {
+      name: "Extracted Text",
+      type: TaskParamType.STRING,
+    },
+  ],
 };

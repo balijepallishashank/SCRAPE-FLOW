@@ -43,7 +43,9 @@ async function seedExampleWorkflow() {
         position: { x: 100, y: 100 },
         data: {
           type: TaskType.LAUNCH_BROWSER,
-          inputs: {},
+          inputs: {
+            "Website Url": "https://example.com",
+          },
         },
       },
       {
@@ -53,7 +55,7 @@ async function seedExampleWorkflow() {
         data: {
           type: TaskType.NAVIGATE_URL,
           inputs: {
-            Url: "https://example.com",
+            URL: "https://example.com",
           },
         },
       },
@@ -65,7 +67,7 @@ async function seedExampleWorkflow() {
           type: TaskType.WAIT_FOR_ELEMENT,
           inputs: {
             Selector: "body",
-            Timeout: "5000",
+            "Timeout (ms)": "5000",
           },
         },
       },
@@ -76,6 +78,7 @@ async function seedExampleWorkflow() {
         data: {
           type: TaskType.EXTRACT_TEXT,
           inputs: {
+            Html: "",
             Selector: "h1",
           },
         },
@@ -86,7 +89,9 @@ async function seedExampleWorkflow() {
         position: { x: 100, y: 700 },
         data: {
           type: TaskType.PAGE_TO_HTML,
-          inputs: {},
+          inputs: {
+            "Web page": "",
+          },
         },
       },
       {
@@ -96,8 +101,9 @@ async function seedExampleWorkflow() {
         data: {
           type: TaskType.TRANSFORM_DATA,
           inputs: {
-            Input: "",
-            Transform: "return { title: $.ExtractedText, html: $.PageHTML, timestamp: new Date().toISOString() }",
+            "Input Data": "",
+            "Transformation Type": "trim",
+            Options: "",
           },
         },
       },
@@ -108,8 +114,8 @@ async function seedExampleWorkflow() {
         data: {
           type: TaskType.DELIVER_VIA_WEBHOOK,
           inputs: {
-            Url: "https://webhook.site/unique-id",
-            Data: "",
+            "Target URL": "https://webhook.site/unique-id",
+            Body: '{"title": "{{TRANSFORM_DATA}}"}',
           },
         },
       },
@@ -119,50 +125,43 @@ async function seedExampleWorkflow() {
         id: "edge_1_2",
         source: "node_1",
         target: "node_2",
-        sourceHandle: "Browser-instance",
-        targetHandle: "Browser-instance",
+        sourceHandle: "Web page",
+        targetHandle: "Web page",
       },
       {
         id: "edge_2_3",
         source: "node_2",
         target: "node_3",
-        sourceHandle: "Browser-instance",
-        targetHandle: "Browser-instance",
+        sourceHandle: "Web page",
+        targetHandle: "Web page",
       },
       {
         id: "edge_3_4",
         source: "node_3",
-        target: "node_4",
-        sourceHandle: "Browser-instance",
-        targetHandle: "Browser-instance",
+        target: "node_5",
+        sourceHandle: "Web page",
+        targetHandle: "Web page",
       },
       {
         id: "edge_4_5",
-        source: "node_4",
-        target: "node_5",
-        sourceHandle: "Browser-instance",
-        targetHandle: "Browser-instance",
+        source: "node_5",
+        target: "node_4",
+        sourceHandle: "HTML",
+        targetHandle: "Html",
       },
       {
         id: "edge_4_6",
         source: "node_4",
         target: "node_6",
-        sourceHandle: "Extracted-text",
-        targetHandle: "Input",
-      },
-      {
-        id: "edge_5_6",
-        source: "node_5",
-        target: "node_6",
-        sourceHandle: "HTML",
-        targetHandle: "Transform",
+        sourceHandle: "Extracted Text",
+        targetHandle: "Input Data",
       },
       {
         id: "edge_6_7",
         source: "node_6",
         target: "node_7",
-        sourceHandle: "Transformed-data",
-        targetHandle: "Data",
+        sourceHandle: "Transformed Data",
+        targetHandle: "Body",
       },
     ],
     viewport: { x: 0, y: 0, zoom: 1 },

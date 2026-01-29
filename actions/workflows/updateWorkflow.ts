@@ -41,5 +41,9 @@ export async function UpdateWorkflow({
       definition,
     },
   });
-  revalidatePath(`/workflow/editor/${id}`);
+  
+  // NOTE: We DO NOT call revalidatePath here because it causes the editor to reload
+  // and lose the current React Flow state. The editor already has the latest state
+  // in memory, and the database is updated successfully. Only revalidate when navigating
+  // away from the editor (e.g., after publish, delete, etc.)
 }
