@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { browserManager } from "@/lib/browser/BrowserManager";
+import { fetchWithRetry } from "@/lib/http";
+import { checkRateLimitForUser, incrementRateLimitForUser } from "@/lib/rateLimit";
 import { Page } from "puppeteer";
 
 export interface ExecutionResult {
@@ -44,6 +46,25 @@ export async function executeWorkflow(workflowId: string): Promise<ExecutionResu
       logs: [],
     };
   }
+
+  const rateLimit = await checkRateLimitForUser(userId, "EXECUTION");
+
+  if (!rateLimit.allowed) {
+    return {
+      success: false,
+      error: `Rate limit exceeded. Try again after ${rateLimit.resetAt.toISOString()}.`,
+      logs: [
+        {
+          timestamp: new Date(),
+          level: "error",
+          message: "Execution rate limit exceeded.",
+          taskType: "RATE_LIMIT",
+        },
+      ],
+    };
+  }
+
+  await incrementRateLimitForUser(userId, "EXECUTION");
 
   const workflow = await prisma.workflow.findFirst({
     where: {
@@ -431,12 +452,15 @@ async function executeConnectedTasks(
             throw new Error("Target URL and Body are required for DELIVER_VIA_WEBHOOK task");
           }
           try {
-            const response = await fetch(webhookUrl, {
+            const response = await fetchWithRetry(webhookUrl, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
               body: webhookBody,
+              timeoutMs: Number(process.env.WEBHOOK_TIMEOUT_MS ?? 10000),
+              retries: Number(process.env.WEBHOOK_RETRIES ?? 2),
+              backoffMs: Number(process.env.WEBHOOK_BACKOFF_MS ?? 500),
             });
             if (!response.ok) {
               throw new Error(`Webhook failed with status ${response.status}`);

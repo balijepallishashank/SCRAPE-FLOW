@@ -28,10 +28,10 @@ export default function Topbar({ title, subtitle, workflowId }: Props) {
   
   return (
     <header className="flex flex-col w-full sticky top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-white/10 z-20">
-      {/* Top Section: Back + Title + Actions */}
-      <div className="flex items-center justify-between px-4 py-3">
+      {/* Top Section: Back + Title | Tabs | Actions */}
+      <div className="grid items-center grid-cols-[1fr_auto_1fr] px-4 py-3">
         {/* Left: Back + Title */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-self-start">
           <TooltipWrapper content="Back">
             <Button 
               variant="ghost" 
@@ -49,45 +49,39 @@ export default function Topbar({ title, subtitle, workflowId }: Props) {
             )}
           </div>
         </div>
+
+        {/* Center: Tabs */}
+        <div className="flex items-center justify-self-center rounded-full border border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 p-1">
+          <Link
+            href={`/workflow/editor/${workflowId}`}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors rounded-full",
+              isEditorTab
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-white"
+                : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            )}
+          >
+            Editor
+          </Link>
+          <Link
+            href={`/runs?workflowId=${workflowId}`}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium transition-colors rounded-full",
+              isRunsTab
+                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-white"
+                : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            )}
+          >
+            Runs
+          </Link>
+        </div>
         
         {/* Right: Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-end">
           <ExecuteBtn workflowId={workflowId} />
           <SaveBtn workflowId={workflowId} />
           <PublishBtn workflowId={workflowId} />
         </div>
-      </div>
-      
-      {/* Bottom Section: Tabs */}
-      <div className="flex items-center px-4 border-t border-neutral-200 dark:border-white/10">
-        <Link
-          href={`/workflow/editor/${workflowId}`}
-          className={cn(
-            "px-4 py-2 text-sm font-medium transition-colors relative",
-            isEditorTab
-              ? "text-neutral-900 dark:text-white"
-              : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
-          )}
-        >
-          Editor
-          {isEditorTab && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white" />
-          )}
-        </Link>
-        <Link
-          href={`/runs?workflowId=${workflowId}`}
-          className={cn(
-            "px-4 py-2 text-sm font-medium transition-colors relative",
-            isRunsTab
-              ? "text-neutral-900 dark:text-white"
-              : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
-          )}
-        >
-          Runs
-          {isRunsTab && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white" />
-          )}
-        </Link>
       </div>
     </header>
   );

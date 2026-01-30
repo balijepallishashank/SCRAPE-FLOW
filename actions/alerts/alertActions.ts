@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { fetchWithRetry } from "@/lib/http";
 
 export async function getAlertConfig(workflowId: string) {
   const { userId } = await auth();
@@ -97,7 +98,7 @@ export async function sendAlert(params: {
   // Send webhook notification
   if (config.webhookEnabled && config.webhookUrl) {
     try {
-      await fetch(config.webhookUrl, {
+      await fetchWithRetry(config.webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,6 +111,9 @@ export async function sendAlert(params: {
           error: params.error,
           timestamp: new Date().toISOString(),
         }),
+        timeoutMs: Number(process.env.WEBHOOK_TIMEOUT_MS ?? 10000),
+        retries: Number(process.env.WEBHOOK_RETRIES ?? 2),
+        backoffMs: Number(process.env.WEBHOOK_BACKOFF_MS ?? 500),
       });
     } catch (error) {
       console.error("Failed to send webhook alert:", error);

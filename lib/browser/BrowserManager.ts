@@ -3,6 +3,9 @@ import puppeteer, { Browser, Page } from "puppeteer";
 export class BrowserManager {
   private static instance: BrowserManager;
   private browser: Browser | null = null;
+  private activePages = 0;
+  private waitQueue: Array<() => void> = [];
+  private maxPages = Number(process.env.BROWSER_POOL_SIZE ?? 5);
 
   private constructor() {}
 
@@ -36,7 +39,7 @@ export class BrowserManager {
     }
 
     this.browser = await puppeteer.launch({
-      headless: "new",
+      headless: true,
       executablePath, // Use Brave if found, otherwise Chromium
       timeout: 60000,
       args: [
@@ -57,24 +60,56 @@ export class BrowserManager {
   }
 
   async createPage(): Promise<Page> {
-    const browser = await this.launchBrowser();
-    const page = await browser.newPage();
-    
-    // Set user agent to avoid bot detection
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
-    
-    // Set viewport
-    await page.setViewport({ width: 1920, height: 1080 });
-    
-    return page;
+    await this.acquirePageSlot();
+
+    try {
+      const browser = await this.launchBrowser();
+      const page = await browser.newPage();
+      page.on("close", () => this.releasePageSlot());
+
+      // Set user agent to avoid bot detection
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      );
+
+      // Set viewport
+      await page.setViewport({ width: 1920, height: 1080 });
+
+      return page;
+    } catch (error) {
+      this.releasePageSlot();
+      throw error;
+    }
   }
 
   async closeBrowser(): Promise<void> {
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
+    }
+  }
+
+  private async acquirePageSlot(): Promise<void> {
+    if (this.activePages < this.maxPages) {
+      this.activePages += 1;
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      this.waitQueue.push(resolve);
+    });
+
+    this.activePages += 1;
+  }
+
+  private releasePageSlot(): void {
+    if (this.activePages > 0) {
+      this.activePages -= 1;
+    }
+
+    const next = this.waitQueue.shift();
+    if (next) {
+      next();
     }
   }
 

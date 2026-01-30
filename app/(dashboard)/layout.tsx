@@ -3,11 +3,20 @@
 import BreadcrumbHeader from "@/components/BreadcrumbHeader";
 import Sidebar from "@/components/Sidebar";
 import { ModeToggle } from "@/components/ThemeModeToggle";
-import { Separator } from "@/components/ui/separator";
 import { UserButton } from "@clerk/nextjs";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

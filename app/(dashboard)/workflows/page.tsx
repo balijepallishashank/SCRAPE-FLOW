@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/alert";
 import { AlertCircle, InboxIcon } from "lucide-react";
 import CreateWorkflowDialog from "./_components/CreateWorkflowDialog";
+import ImportWorkflowButton from "./_components/ImportWorkflowButton";
 import WorkflowCard from "./_components/WorkflowCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -28,7 +29,10 @@ export default function Page() {
           </p>
         </div>
 
-        <CreateWorkflowDialog triggerText="Create workflow" />
+        <div className="flex items-center gap-2">
+          <ImportWorkflowButton />
+          <CreateWorkflowDialog triggerText="Create workflow" />
+        </div>
       </div>
 
       {/* Content */}
@@ -94,6 +98,7 @@ async function UserWorkflows() {
         </div>
 
         <div className="flex gap-3">
+          <ImportWorkflowButton />
           <CreateWorkflowDialog triggerText="Create workflow" />
           <Button variant="outline" asChild>
             <Link href="/templates">

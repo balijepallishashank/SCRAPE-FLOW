@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  FileTextIcon,
   MoreVerticalIcon,
   PlayIcon,
   TrashIcon,
@@ -209,6 +208,34 @@ function WorkflowActions({
     },
   });
 
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const { exportWorkflow } = await import("@/actions/workflows/exportWorkflow");
+      return exportWorkflow(workflowId);
+    },
+    onSuccess: (payload) => {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `workflow-${workflowName.replace(/\s+/g, "-")}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Export complete");
+    },
+    onError: (error: any) => {
+      toast.error("Failed to export workflow", {
+        description: error.message,
+      });
+    },
+  });
+
   return (
     <>
       <DeleteWorkflowDialog
@@ -254,6 +281,15 @@ function WorkflowActions({
           >
             <CopyIcon size={16} />
             Duplicate
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="flex items-center gap-2"
+            onSelect={() => exportMutation.mutate()}
+            disabled={exportMutation.isPending}
+          >
+            <DownloadIcon size={16} />
+            Export
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

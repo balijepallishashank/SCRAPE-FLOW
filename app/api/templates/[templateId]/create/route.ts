@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { checkRateLimitForUser, incrementRateLimitForUser } from "@/lib/rateLimit";
 
 export async function POST(
   request: Request,
@@ -13,6 +14,16 @@ export async function POST(
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rateLimit = await checkRateLimitForUser(userId, "API");
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", resetAt: rateLimit.resetAt.toISOString() },
+        { status: 429 }
+      );
+    }
+
+    await incrementRateLimitForUser(userId, "API");
 
     const body = await request.json();
     const { definition } = body;

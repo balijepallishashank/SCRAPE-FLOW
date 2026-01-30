@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma";
+import { checkRateLimitForUser, incrementRateLimitForUser } from "@/lib/rateLimit";
+import { stripe } from "../../../../lib/stripe";
 
 export async function POST(request: Request) {
   try {
@@ -10,60 +11,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { packageId, credits, amount } = body;
+    const rateLimit = await checkRateLimitForUser(userId, "API");
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", resetAt: rateLimit.resetAt.toISOString() },
+        { status: 429 }
+      );
+    }
 
-    if (!packageId || !credits || amount === undefined) {
+    await incrementRateLimitForUser(userId, "API");
+
+    const body = await request.json();
+    const { packageId } = body;
+
+    if (!packageId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Get current user balance
-    let userBalance = await prisma.userBalance.findUnique({
-      where: { userId },
-    });
+    const packages: Record<string, { credits: number; amount: number; name: string }> = {
+      standard: { credits: 100, amount: 10, name: "100 Credits" },
+      popular: { credits: 500, amount: 40, name: "500 Credits" },
+      premium: { credits: 1000, amount: 70, name: "1000 Credits" },
+    };
 
-    if (!userBalance) {
-      userBalance = await prisma.userBalance.create({
-        data: {
-          userId,
-          credits: 0,
-        },
-      });
+    const selectedPackage = packages[packageId];
+
+    if (!selectedPackage) {
+      return NextResponse.json(
+        { error: "Invalid package" },
+        { status: 400 }
+      );
     }
 
-    // Update balance with new credits
-    const updatedBalance = await prisma.userBalance.update({
-      where: { userId },
-      data: {
-        credits: userBalance.credits + credits,
-      },
-    });
+    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    // Create audit log for the purchase
-    await prisma.auditLog.create({
-      data: {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: selectedPackage.amount * 100,
+            product_data: {
+              name: selectedPackage.name,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${origin}/billing?success=1` ,
+      cancel_url: `${origin}/billing?canceled=1` ,
+      metadata: {
         userId,
-        action: "PURCHASE_CREDITS",
-        entityType: "UserBalance",
-        entityId: userId,
-        metadata: JSON.stringify({
-          packageId,
-          creditsAdded: credits,
-          amount,
-          newBalance: updatedBalance.credits,
-          timestamp: new Date().toISOString(),
-        }),
+        credits: String(selectedPackage.credits),
+        packageId,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      newBalance: updatedBalance.credits,
-      creditsAdded: credits,
-    });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Error processing purchase:", error);
     return NextResponse.json(

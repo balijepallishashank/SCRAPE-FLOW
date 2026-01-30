@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { executeWorkflow } from "@/actions/workflows/executeWorkflow";
+import { checkRateLimitForUser, incrementRateLimitForUser } from "@/lib/rateLimit";
 
 export async function POST(
   request: NextRequest,
@@ -26,6 +27,16 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    const rateLimit = await checkRateLimitForUser(webhook.userId, "WEBHOOK");
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", resetAt: rateLimit.resetAt.toISOString() },
+        { status: 429 }
+      );
+    }
+
+    await incrementRateLimitForUser(webhook.userId, "WEBHOOK");
 
     // Get request body (if any)
     let body = null;
